@@ -4,6 +4,35 @@ info:
   version: 1.0.0
 paths:
   /customers:
+    get:
+      operationId: findCustomerByEmail
+      summary: Find a customer by email
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        '200':
+          description: Customer found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          description: Invalid email address
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
     post:
       operationId: createCustomer
       summary: Create a customer
