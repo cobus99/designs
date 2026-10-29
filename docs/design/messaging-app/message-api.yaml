@@ -1,0 +1,214 @@
+openapi: 3.0.3
+info:
+  title: Message Service API
+  version: 1.0.0
+paths:
+  /messages:
+    post:
+      operationId: createMessage
+      summary: Create a message and start a thread
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageCreateRequest'
+      responses:
+        '201':
+          description: Message created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          description: Invalid message data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Sender or recipient customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '502':
+          description: Customer service request failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /messages/{messageId}/replies:
+    post:
+      operationId: replyToMessage
+      summary: Reply to a message
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageReplyRequest'
+      responses:
+        '201':
+          description: Reply created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '400':
+          description: Invalid reply data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Message or customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Sender is not a participant in the thread
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '502':
+          description: Customer service request failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /threads:
+    get:
+      operationId: getThreadsForCustomer
+      summary: Get message threads for a customer
+      parameters:
+        - name: customerId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Threads containing the customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThreadCollection'
+        '400':
+          description: Invalid customer ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+components:
+  schemas:
+    MessageCreateRequest:
+      type: object
+      required:
+        - senderCustomerId
+        - recipientCustomerId
+        - body
+      properties:
+        senderCustomerId:
+          type: string
+          format: uuid
+        recipientCustomerId:
+          type: string
+          format: uuid
+        body:
+          type: string
+          minLength: 1
+    MessageReplyRequest:
+      type: object
+      required:
+        - senderCustomerId
+        - body
+      properties:
+        senderCustomerId:
+          type: string
+          format: uuid
+          description: Must be one of the thread participants; the other participant is the recipient.
+        body:
+          type: string
+          minLength: 1
+    Message:
+      type: object
+      required:
+        - messageId
+        - threadId
+        - senderCustomerId
+        - recipientCustomerId
+        - body
+        - createdAt
+      properties:
+        messageId:
+          type: string
+          format: uuid
+        threadId:
+          type: string
+          format: uuid
+        parentMessageId:
+          type: string
+          format: uuid
+          nullable: true
+        senderCustomerId:
+          type: string
+          format: uuid
+        recipientCustomerId:
+          type: string
+          format: uuid
+        body:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    Thread:
+      type: object
+      required:
+        - threadId
+        - participantCustomerIds
+        - messages
+      properties:
+        threadId:
+          type: string
+          format: uuid
+        participantCustomerIds:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            type: string
+            format: uuid
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+    ThreadCollection:
+      type: object
+      required:
+        - threads
+      properties:
+        threads:
+          type: array
+          items:
+            $ref: '#/components/schemas/Thread'
+    ApiError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
